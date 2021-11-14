@@ -44,17 +44,29 @@ class AudioPlayer {
    * @param {[ConvertedNote]} notes
    * @param {number} bpm
    * @param {AdsrSettings} adsrSettings
+   * @param {OscillatorType} wave
    */
-  play(notes, bpm, adsrSettings) {
+  play(notes, bpm, adsrSettings, wave) {
     this._audioContext?.close();
     this._audioContext = new AudioContext();
+
+    const compressor = this._audioContext.createDynamicsCompressor();
 
     const bitDuration = 60 / bpm;
     notes.forEach((note, index) => {
       const startTime = index * bitDuration;
       const endTime = startTime + bitDuration * note.durationInBits;
-      this._scheduleNote(note.frequency, startTime, endTime, adsrSettings);
+      this._scheduleNote({
+        frequency: note.frequency,
+        startTime: startTime,
+        releaseTime: endTime,
+        adsrSettings: adsrSettings,
+        wave: wave,
+        destination: compressor,
+      });
     });
+
+    compressor.connect(this._audioContext.destination);
 
     this._state.next(this._audioContext.state);
   }
@@ -102,34 +114,42 @@ class AudioPlayer {
    * @param {number} startTime start time in seconds
    * @param {number} releaseTime stop time in seconds
    * @param {AdsrSettings} adsrSettings ADSR settings
+   * @param {OscillatorType} wave
+   * @param {AudioNode} destination
    * @private
    */
-  _scheduleNote(frequency, startTime, releaseTime, adsrSettings) {
+  _scheduleNote({
+    frequency,
+    startTime,
+    releaseTime,
+    adsrSettings,
+    wave,
+    destination,
+  }) {
     const oscillator = this._audioContext.createOscillator();
     const gainNode = this._audioContext.createGain();
     const noteDuration = releaseTime - startTime;
 
-    oscillator.type = "sine";
+    oscillator.type = wave;
     oscillator.frequency.value = frequency;
 
     oscillator.start(startTime);
 
     gainNode.gain.setValueAtTime(0, startTime);
     // set attack
-    gainNode.gain.linearRampToValueAtTime(
-      1,
-      startTime + noteDuration * adsrSettings.attack
-    );
+    const finishAttackTime = startTime + noteDuration * adsrSettings.attack;
+    gainNode.gain.linearRampToValueAtTime(1, finishAttackTime);
 
     // set decay
-    const finishDecayTime = startTime + noteDuration * adsrSettings.decay;
+    const finishDecayTime =
+      finishAttackTime + noteDuration * adsrSettings.decay;
     gainNode.gain.linearRampToValueAtTime(
       adsrSettings.sustain,
       finishDecayTime
     );
 
-    // set sustain
-    gainNode.gain.setValueAtTime(adsrSettings.sustain, finishDecayTime);
+    // sustain flat
+    gainNode.gain.setValueAtTime(adsrSettings.sustain, releaseTime);
 
     // set release
     let finishReleaseTime = releaseTime + noteDuration * adsrSettings.release;
@@ -137,7 +157,7 @@ class AudioPlayer {
 
     oscillator.stop(finishReleaseTime);
 
-    oscillator.connect(gainNode).connect(this._audioContext.destination);
+    oscillator.connect(gainNode).connect(destination);
   }
 }
 

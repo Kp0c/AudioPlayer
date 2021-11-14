@@ -1,7 +1,6 @@
 const NotesConverter = require("./notes-converter");
 const AudioPlayer = require("./audio-player");
 const { takeUntil, ReplaySubject } = require("rxjs");
-const { doc } = require("prettier");
 
 let template = document.createElement("template");
 template.innerHTML = `
@@ -92,14 +91,22 @@ template.innerHTML = `
     <input class="slider" type="range" id="bpm-slider" min="10" max="300" value="100">
   </div>
   <div>
+    <select name="wave" id="wave">
+      <option value="sine">sine</option>
+      <option value="sawtooth">sawtooth</option>
+      <option value="square">square</option>
+      <option value="triangle">triangle</option>
+    </select>
+  </div>
+  <div>
     <label for="attack">Attack</label>
-    <input class="slider" type="range" name="slider" id="attack-slider" min="0.01" max="0.5" value="0.25" step="0.01">
+    <input class="slider" type="range" name="slider" id="attack-slider" min="0.01" max="0.5" value="0.01" step="0.01">
     <label for="decay">Decay</label>
-    <input class="slider" type="range" name="slider" id="decay-slider" min="0" max="1" value="0.5" step="0.01">
+    <input class="slider" type="range" name="slider" id="decay-slider" min="0.01" max="0.5" value="0.01" step="0.01">
     <label for="sustain">Sustain</label>
-    <input class="slider" type="range" name="slider" id="sustain-slider" min="0" max="0.5" value="0.25" step="0.01">
+    <input class="slider" type="range" name="slider" id="sustain-slider" min="0.01" max="1" value="1" step="0.01">
     <label for="release">Release</label>
-    <input class="slider" type="range" name="slider" id="release-slider" min="0.01" max="1" value="0.5" step="0.01">
+    <input class="slider" type="range" name="slider" id="release-slider" min="0.01" max="1" value="0.01" step="0.01">
   </div>
 </div>
 `;
@@ -138,6 +145,7 @@ class PlayerController extends HTMLElement {
     this.bpmSlider = this.shadowRoot.getElementById("bpm-slider");
     this.bpmText = this.shadowRoot.getElementById("bpm-text");
 
+    this.wave = this.shadowRoot.getElementById("wave");
     this.attack = this.shadowRoot.getElementById("attack-slider");
     this.decay = this.shadowRoot.getElementById("decay-slider");
     this.sustain = this.shadowRoot.getElementById("sustain-slider");
@@ -177,6 +185,7 @@ class PlayerController extends HTMLElement {
           this.decay,
           this.sustain,
           this.release,
+          this.wave,
         ];
 
         elementsToDisableOnPlaying.forEach((element) => {
@@ -201,12 +210,17 @@ class PlayerController extends HTMLElement {
     const notationText = this.notation.value.trim();
     const notes = converter.convertNotation(notationText);
 
-    this._audioPlayer.play(notes, this.bpmSlider.value, {
-      attack: this.attack.value,
-      decay: this.decay.value,
-      sustain: this.sustain.value,
-      release: this.release.value,
-    });
+    this._audioPlayer.play(
+      notes,
+      this.bpmSlider.value,
+      {
+        attack: Number(this.attack.value),
+        decay: Number(this.decay.value),
+        sustain: Number(this.sustain.value),
+        release: Number(this.release.value),
+      },
+      this.wave.value
+    );
   };
 
   handlePause = async () => {

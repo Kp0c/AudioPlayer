@@ -74,12 +74,16 @@ class NotesConverter {
   _convertNote(notationUnit) {
     let note = this._parseNote(notationUnit);
 
-    const distance = this._calculateDistanceFromBaseNote(
-      note.note,
-      note.octave
-    );
-    const frequency =
-      this._baseNoteFrequency * 2 ** (distance / this._notes.length);
+    let frequency = 0;
+
+    if (!note.isPause) {
+      const distance = this._calculateDistanceFromBaseNote(
+        note.note,
+        note.octave
+      );
+      frequency =
+        this._baseNoteFrequency * 2 ** (distance / this._notes.length);
+    }
 
     return {
       frequency: Number(frequency.toFixed(2)),
