@@ -21,3 +21,36 @@ html, body {
     margin: 0;
     background: var(--background-color);
 }
+
+.action-buttons {
+    top: 0;
+    position: fixed;
+    display: flex;
+    justify-content: space-between;
+    margin: 10px 0;
+    z-index: 10;
+}
+
+button {
+    background-color: var(--primary-color);
+    border-radius: 5px;
+    border-width: 0;
+    color: var(--text-color);
+    cursor: pointer;
+    padding: 10px 25px;
+    margin: 0px 10px;
+}
+
+button:disabled {
+    background-color: var(--light-primary-color);
+    pointer-events: none;
+    cursor: none;
+}
+
+.green-button {
+    background-color: #228802;
+}
+
+.wide-button {
+    width: 80vw;
+}

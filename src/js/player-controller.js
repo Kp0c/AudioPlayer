@@ -1,6 +1,7 @@
 const NotesConverter = require("./notes-converter");
 const AudioPlayer = require("./audio-player");
 const { takeUntil, ReplaySubject } = require("rxjs");
+const { doc } = require("prettier");
 
 let template = document.createElement("template");
 template.innerHTML = `
@@ -38,21 +39,6 @@ template.innerHTML = `
     border: 1px solid var(--divider-color);
 }
 
-button {
-    background-color: var(--primary-color);
-    border-radius: 5px;
-    border-width: 0;
-    color: var(--text-color);
-    cursor: pointer;
-    padding: 10px 25px;
-}
-
-button:disabled {
-    background-color: var(--light-primary-color);
-    pointer-events: none;
-    cursor: none;
-}
-
 .slider {
     -webkit-appearance: none;
     width: 100%;
@@ -79,13 +65,25 @@ button:disabled {
     cursor: pointer;
 }
 
-.action-buttons {
-    display: flex;
-    justify-content: space-between;
-    margin: 10px 0;
+.slider:disabled::-webkit-slider-thumb {
+    background: var(--light-primary-color);
+}
+
+#delete-button {
+  height: 16px;
+  width: 16px;
+  display: block;
+  margin-left: auto;
+  cursor: pointer;
+  transition: all .4s;
+}
+
+#delete-button:hover {
+  transform: scale(1.1);
 }
 </style>
 <div class="player-container">
+  <img id="delete-button" src="assets/delete-button.svg" alt="Delete button">
   <textarea rows="10" name="notation" id="notation">E4/4 E4/4 E4/4 D#4/8. A#4/16 E4/4 D#4/8. A#4/16 E4/2 D5/4 D5/4 D5/4 D#5/8. A#4/16 F#4/4 D#4/8. A#4/16 E4/2</textarea>
   
   <div class="bpm">
@@ -102,12 +100,6 @@ button:disabled {
     <input class="slider" type="range" name="slider" id="sustain-slider" min="0" max="0.5" value="0.25" step="0.01">
     <label for="release">Release</label>
     <input class="slider" type="range" name="slider" id="release-slider" min="0.01" max="1" value="0.5" step="0.01">
-  </div>
-  <div class="action-buttons">
-    <button id="play-button">Play</button>
-    <!--    TODO: add fading on pause/resume -->
-    <button id="pause-button" disabled>Pause</button>
-    <button id="resume-button" disabled>Resume</button>
   </div>
 </div>
 `;
@@ -134,31 +126,14 @@ class PlayerController extends HTMLElement {
     this.shadowRoot.appendChild(template.content.cloneNode(true));
   }
 
-  handlePlay() {
-    const converter = new NotesConverter();
-    const notationText = this.notation.value.trim();
-    const notes = converter.convertNotation(notationText);
-
-    this._audioPlayer.play(notes, this.bpmSlider.value, {
-      attack: this.attack.value,
-      decay: this.decay.value,
-      sustain: this.sustain.value,
-      release: this.release.value,
-    });
-  }
-
-  async handlePause() {
-    await this._audioPlayer.pause();
-  }
-
-  async handleResume() {
-    await this._audioPlayer.resume();
-  }
-
   connectedCallback() {
-    this.playButton = this.shadowRoot.getElementById("play-button");
-    this.pauseButton = this.shadowRoot.getElementById("pause-button");
-    this.resumeButton = this.shadowRoot.getElementById("resume-button");
+    this.playButton = document.getElementById("play-button");
+    this.pauseButton = document.getElementById("pause-button");
+    this.resumeButton = document.getElementById("resume-button");
+    this.stopButton = document.getElementById("stop-button");
+
+    this.deleteButton = this.shadowRoot.getElementById("delete-button");
+
     this.notation = this.shadowRoot.getElementById("notation");
     this.bpmSlider = this.shadowRoot.getElementById("bpm-slider");
     this.bpmText = this.shadowRoot.getElementById("bpm-text");
@@ -168,9 +143,12 @@ class PlayerController extends HTMLElement {
     this.sustain = this.shadowRoot.getElementById("sustain-slider");
     this.release = this.shadowRoot.getElementById("release-slider");
 
-    this.playButton.addEventListener("click", this.handlePlay.bind(this));
-    this.pauseButton.addEventListener("click", this.handlePause.bind(this));
-    this.resumeButton.addEventListener("click", this.handleResume.bind(this));
+    this.playButton.addEventListener("click", this.handlePlay);
+    this.pauseButton.addEventListener("click", this.handlePause);
+    this.resumeButton.addEventListener("click", this.handleResume);
+    this.stopButton.addEventListener("click", this.handleStop);
+
+    this.deleteButton.addEventListener("click", this.delete);
 
     this.bpmSlider.addEventListener("input", () => {
       this.bpmText.value = this.bpmSlider.value;
@@ -189,13 +167,63 @@ class PlayerController extends HTMLElement {
 
         this.pauseButton.disabled = isClosed || isSuspended;
         this.resumeButton.disabled = isClosed || isRunning;
+        this.stopButton.disabled = isClosed;
+
+        const elementsToDisableOnPlaying = [
+          this.notation,
+          this.bpmText,
+          this.bpmSlider,
+          this.attack,
+          this.decay,
+          this.sustain,
+          this.release,
+        ];
+
+        elementsToDisableOnPlaying.forEach((element) => {
+          element.disabled = !isClosed;
+        });
       });
   }
 
   async disconnectedCallback() {
+    this.playButton.removeEventListener("click", this.handlePlay);
+    this.pauseButton.removeEventListener("click", this.handlePause);
+    this.resumeButton.removeEventListener("click", this.handleResume);
+    this.stopButton.removeEventListener("click", this.handleStop);
+    this.deleteButton.removeEventListener("click", this.delete);
+
     this._disconnect$.next();
     await this._audioPlayer.destroy();
   }
+
+  handlePlay = () => {
+    const converter = new NotesConverter();
+    const notationText = this.notation.value.trim();
+    const notes = converter.convertNotation(notationText);
+
+    this._audioPlayer.play(notes, this.bpmSlider.value, {
+      attack: this.attack.value,
+      decay: this.decay.value,
+      sustain: this.sustain.value,
+      release: this.release.value,
+    });
+  };
+
+  handlePause = async () => {
+    await this._audioPlayer.pause();
+  };
+
+  handleResume = async () => {
+    await this._audioPlayer.resume();
+  };
+
+  handleStop = async () => {
+    await this._audioPlayer.stop();
+  };
+
+  delete = () => {
+    this.parentElement.removeChild(this);
+  };
 }
 
 window.customElements.define("ap-controller", PlayerController);

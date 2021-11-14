@@ -77,8 +77,23 @@ class AudioPlayer {
     this._state.next(this._audioContext.state);
   }
 
+  /**
+   * Stops music
+   */
+  async stop() {
+    await this._audioContext?.close();
+    this._state.next(this._audioContext.state);
+
+    this._audioContext = null;
+  }
+
+  /**
+   * Closes audio context
+   */
   async destroy() {
     await this._audioContext?.close();
+
+    this._audioContext = null;
   }
 
   /**
