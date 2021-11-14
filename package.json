@@ -1,0 +1,21 @@
+{
+  "name": "audioplayer",
+  "private": true,
+  "scripts": {
+    "build": "webpack",
+    "watch": "webpack --watch",
+    "start": "webpack server --open",
+    "test": "jest"
+  },
+  "devDependencies": {
+    "copy-webpack-plugin": "^9.1.0",
+    "jest": "^27.3.1",
+    "prettier": "^2.4.1",
+    "webpack": "^5.64.0",
+    "webpack-cli": "^4.9.1",
+    "webpack-dev-server": "^4.5.0"
+  },
+  "dependencies": {
+    "rxjs": "^7.4.0"
+  }
+}

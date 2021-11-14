@@ -1,0 +1,23 @@
+html {
+    --light-primary-color: #bbdefb;
+    --primary-color: #2196f3;
+    --text-color: #fff;
+    --divider-color: #bdbdbd;
+    --background-color: #ededed;
+    --background-color-shadow: #a6a6a6;
+    --surface-color: #fafafa;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100%;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--background-color);
+}
