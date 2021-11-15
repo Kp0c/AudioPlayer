@@ -15,6 +15,8 @@ const presetModal = document.getElementById('select-preset-modal');
 const audioPlayer = new AudioPlayer();
 
 /**
+ * Map with component ids and their settings
+ *
  * @type {Map<string, NotationSettingsData>}
  */
 const notationsMap = new Map();

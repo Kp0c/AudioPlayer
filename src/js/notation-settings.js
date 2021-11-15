@@ -221,15 +221,7 @@ class NotationSettings extends HTMLElement {
   }
 
   connectedCallback() {
-    this.deleteButton.addEventListener('click', this.delete);
-
-    this.bpmSlider.addEventListener('input', () => {
-      this.bpmText.value = this.bpmSlider.value;
-    });
-
-    this.bpmText.addEventListener('input', () => {
-      this.bpmSlider.value = this.bpmText.value;
-    });
+    fromEvent(this.deleteButton, 'click').pipe(takeUntil(this._disconnect$)).subscribe(() => this.delete());
 
     fromEvent(this.bpmSlider, 'input')
       .pipe(takeUntil(this._disconnect$))
@@ -316,9 +308,9 @@ class NotationSettings extends HTMLElement {
     this._disconnect$.next();
   }
 
-  delete = () => {
+  delete() {
     this.parentElement.removeChild(this);
-  };
+  }
 }
 
 window.customElements.define('ap-notation-settings', NotationSettings);

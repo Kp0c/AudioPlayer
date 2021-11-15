@@ -31,9 +31,15 @@ class AudioPlayer {
    */
   _state = new Subject();
 
+  /**
+   * Interval id of interval that checks if music finished playing
+   * @type {number|null}
+   * @private
+   */
   _checkIsFinishedIntervalId = null;
 
   /**
+   * Player state
    *
    * @returns { Observable<AudioContextState>}
    */
@@ -42,6 +48,7 @@ class AudioPlayer {
   }
 
   /**
+   * Play the music(s) from the configurations in parallel
    *
    * @param {[NotationSettingsData]} notationSettings
    */

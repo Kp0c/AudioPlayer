@@ -106,7 +106,9 @@ class NotesConverter {
    * @returns {[ConvertedNote]} converted notes
    */
   convertNotation(notation) {
-    return notation.split(' ').map((unit) => this._convertNote(unit));
+    return notation.split(/[\n\r\s\t]/)
+      .filter((value) => value.length > 0)
+      .map((unit) => this._convertNote(unit));
   }
 
   /**

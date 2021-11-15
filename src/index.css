@@ -24,11 +24,15 @@ html, body {
 
 .action-buttons {
     top: 0;
-    position: fixed;
+    position: sticky;
     display: flex;
     justify-content: space-between;
     margin: 10px 0;
     z-index: 10;
+    background-color: var(--surface-color);
+    border-radius: 20px;
+    box-shadow: 0 0 20px 8px var(--background-color-shadow);
+    padding: 15px;
 }
 
 button {
