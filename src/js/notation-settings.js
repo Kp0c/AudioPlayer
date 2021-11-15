@@ -1,7 +1,21 @@
+"use strict";
+
 const NotesConverter = require("./notes-converter");
 const AudioPlayer = require("./audio-player");
-const { takeUntil, ReplaySubject } = require("rxjs");
+const { takeUntil, ReplaySubject, fromEvent, merge } = require("rxjs");
 const presets = require("./presets");
+
+/**
+ * @typedef {Object} NotationSettingsData
+ * @property {boolean} isValid
+ * @property {[ConvertedNote]} notesToPlay
+ * @property {number} bpm
+ * @property {OscillatorType} waveType
+ * @property {number} attack
+ * @property {number} decay
+ * @property {number} sustain
+ * @property {number} release
+ */
 
 let template = document.createElement("template");
 template.innerHTML = `
@@ -86,9 +100,29 @@ select {
   border-radius: 5px;
   border: 1px solid var(--divider-color);  
 }
+
+.invalid {
+  border: 1px solid #ea0000 !important;
+}
+
+.header-container {
+  display: flex;
+}
+
+.spacer {
+  flex: 1
+}
+
+.error-message {
+ color: #ea0000;
+}
 </style>
 <div class="player-container">
-  <img id="delete-button" src="assets/delete-button.svg" alt="Delete button">
+  <div class="header-container">
+    <span class="error-message" id="error"></span>
+    <div class="spacer"></div>
+    <img id="delete-button" src="assets/delete-button.svg" alt="Delete button">
+  </div>
   <textarea rows="10" name="notation" id="notation">E4/4 E4/4 E4/4 D#4/8. A#4/16 E4/4 D#4/8. A#4/16 E4/2 D5/4 D5/4 D5/4 D#5/8. A#4/16 F#4/4 D#4/8. A#4/16 E4/2</textarea>
   
   <div class="bpm">
@@ -118,7 +152,7 @@ select {
 </div>
 `;
 
-class PlayerController extends HTMLElement {
+class NotationSettings extends HTMLElement {
   /**
    *
    * @type {AudioPlayer}
@@ -155,6 +189,8 @@ class PlayerController extends HTMLElement {
     this.decay = this.shadowRoot.getElementById("decay-slider");
     this.sustain = this.shadowRoot.getElementById("sustain-slider");
     this.release = this.shadowRoot.getElementById("release-slider");
+
+    this.error = this.shadowRoot.getElementById("error");
   }
 
   static get observedAttributes() {
@@ -193,6 +229,39 @@ class PlayerController extends HTMLElement {
       this.bpmSlider.value = this.bpmText.value;
     });
 
+    fromEvent(this.bpmSlider, "input")
+      .pipe(takeUntil(this._disconnect$))
+      .subscribe((event) => {
+        this.bpmText.value = event.target.value;
+
+        this.bpmText.dispatchEvent(
+          new Event("change", {
+            bubbles: true,
+            cancelable: true,
+          })
+        );
+      });
+
+    fromEvent(this.bpmText, "change")
+      .pipe(takeUntil(this._disconnect$))
+      .subscribe((event) => {
+        this.bpmSlider.value = event.target.value;
+      });
+
+    merge(
+      fromEvent(this.bpmText, "change"),
+      fromEvent(this.wave, "change"),
+      fromEvent(this.attack, "change"),
+      fromEvent(this.decay, "change"),
+      fromEvent(this.sustain, "change"),
+      fromEvent(this.release, "change"),
+      fromEvent(this.notation, "change")
+    )
+      .pipe(takeUntil(this._disconnect$))
+      .subscribe(() => {
+        this.validateAndSendEvent();
+      });
+
     this._audioPlayer.state
       .pipe(takeUntil(this._disconnect$))
       .subscribe((state) => {
@@ -219,6 +288,51 @@ class PlayerController extends HTMLElement {
           element.disabled = !isClosed;
         });
       });
+
+    this.validateAndSendEvent();
+  }
+
+  validateAndSendEvent() {
+    let notesToPlay = [];
+    let isValid = true;
+    this.error.innerText = "";
+
+    try {
+      this.notation.classList.remove("invalid");
+
+      const notation = this.notation.value;
+      notesToPlay = new NotesConverter().convertNotation(notation);
+    } catch (err) {
+      this.notation.classList.add("invalid");
+
+      this.error.innerText = err.message;
+      isValid = false;
+    }
+
+    this.bpmText.classList.remove("invalid");
+    if (this.bpmText.value < 10 || this.bpmText.value > 300) {
+      this.bpmText.classList.add("invalid");
+      this.error.innerText = "BPM must be between 10 and 300";
+      isValid = false;
+    }
+
+    /** @type {NotationSettingsData} */
+    const eventData = {
+      notesToPlay,
+      bpm: this.bpmText.value,
+      waveType: this.wave.value,
+      attack: this.attack.value,
+      decay: this.decay.value,
+      sustain: this.sustain.value,
+      release: this.release.value,
+      isValid,
+    };
+
+    this.dispatchEvent(
+      new CustomEvent("notationChange", {
+        detail: eventData,
+      })
+    );
   }
 
   async disconnectedCallback() {
@@ -267,6 +381,6 @@ class PlayerController extends HTMLElement {
   };
 }
 
-window.customElements.define("ap-controller", PlayerController);
+window.customElements.define("ap-notation-settings", NotationSettings);
 
-module.exports = PlayerController;
+module.exports = NotationSettings;

@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * @typedef {Object} ConvertedNote
  * @property {number} frequency
@@ -100,7 +102,13 @@ class NotesConverter {
    * @returns {Note} note
    */
   _parseNote(notationUnit) {
-    const [noteWithOctave, durationInBits] = notationUnit.split("/");
+    const splittedUnit = notationUnit.split("/");
+
+    if (splittedUnit.length !== 2) {
+      throw new Error(`Invalid unit: ${notationUnit}`);
+    }
+
+    const [noteWithOctave, durationInBits] = splittedUnit;
 
     let note = null;
     let octave = null;
@@ -114,18 +122,16 @@ class NotesConverter {
         note = noteWithOctave.slice(0, 1);
         octave = Number(noteWithOctave.slice(1));
       }
+
+      if (Number.isNaN(octave)) {
+        throw new Error(`Invalid unit: ${notationUnit}`);
+      }
     }
 
     const isExtended = durationInBits.includes(".");
 
     const durationModifier = isExtended ? 1.5 : 1;
 
-    /**
-     * 1 / 1 = 4
-     * 1 / 2 = 2
-     * 1 / 4 = 1
-     * 1 / 8 = 0.5
-     */
     return {
       note,
       octave,
@@ -137,7 +143,6 @@ class NotesConverter {
   /**
    * Search a distance from A4 note to passed note
    *
-   * TODO: type from note to {'A'|'B'|'C'}
    * @param {string} note in SPN notation
    * @param {number} octave octave
    *
@@ -146,6 +151,10 @@ class NotesConverter {
    */
   _calculateDistanceFromBaseNote(note, octave) {
     const noteIndex = this._notes.indexOf(note.toUpperCase());
+
+    if (noteIndex === -1) {
+      throw Error(`Invalid note ${note}`);
+    }
 
     const noteDistance = noteIndex - this._baseNoteIndex;
     const octaveDistance = octave - this._baseNoteOctave;

@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * @typedef {Object} Preset
  * @property {OscillatorType} wave

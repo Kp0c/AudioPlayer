@@ -1,28 +1,38 @@
-require("./player-controller");
+"use strict";
 
-const addNotationButton = document.getElementById("add-notation");
-const stopButton = document.getElementById("stop-button");
-const cancelButton = document.getElementById("cancel-button");
+/**
+ * @typedef {import("./notation-settings").NotationSettingsData} NotationSettingsData
+ */
 
-const pianoPresetButton = document.getElementById("piano-preset");
-const synthesizerPresetButton = document.getElementById("synthesizer-preset");
-const drumsPresetButton = document.getElementById("drums-preset");
+require("./notation-settings");
+const { fromEvent, takeUntil, first } = require("rxjs");
 
 const presetModal = document.getElementById("select-preset-modal");
 
-addNotationButton.addEventListener("click", handleAddNotationClick);
-cancelButton.addEventListener("click", handleCancelClick);
-pianoPresetButton.addEventListener("click", addPianoPreset);
-synthesizerPresetButton.addEventListener("click", addSynthesizerPreset);
+function setupListeners() {
+  const cancelButton = document.getElementById("cancel-button");
+  cancelButton.addEventListener("click", handleCancelClick);
+
+  const pianoPresetButton = document.getElementById("piano-preset");
+  pianoPresetButton.addEventListener("click", addPianoPreset);
+
+  const synthesizerPresetButton = document.getElementById("synthesizer-preset");
+  synthesizerPresetButton.addEventListener("click", addSynthesizerPreset);
+
+  const drumsPresetButton = document.getElementById("drums-preset");
+  drumsPresetButton.addEventListener("click", addDrumsPreset);
+
+  const addNotationButton = document.getElementById("add-notation");
+  addNotationButton.addEventListener("click", handleAddNotationClick);
+
+  window.addEventListener("click", handleClickOutside);
+}
 
 function handleClickOutside(event) {
   if (event.target === presetModal) {
     hideModal();
   }
 }
-
-window.addEventListener("click", handleClickOutside);
-drumsPresetButton.addEventListener("click", addDrumsPreset);
 
 function handleAddNotationClick() {
   presetModal.style.display = "flex";
@@ -53,11 +63,49 @@ function addDrumsPreset() {
  * @param {'piano'|'synthesizer'|'drums'} preset
  */
 function addPlayerWithPreset(preset) {
+  const stopButton = document.getElementById("stop-button");
   stopButton.click();
 
-  const newNotation = document.createElement("ap-controller");
+  const newNotation = document.createElement("ap-notation-settings");
   newNotation.setAttribute("preset", preset);
+
+  newNotation.id = Math.random().toString();
+
+  fromEvent(newNotation, "DOMNodeRemoved")
+    .pipe(first())
+    .subscribe(() => {
+      notationsMap.delete(newNotation.id);
+      updatePlayerButtons();
+    });
+
+  fromEvent(newNotation, "notationChange")
+    .pipe(takeUntil(fromEvent(newNotation, "DOMNodeRemoved")))
+    .subscribe((settings) => {
+      notationsMap.set(newNotation.id, settings.detail);
+
+      updatePlayerButtons();
+    });
+
+  const addNotationButton = document.getElementById("add-notation");
   addNotationButton.insertAdjacentElement("beforebegin", newNotation);
 
   hideModal();
 }
+
+function updatePlayerButtons() {
+  let isValid = true;
+
+  notationsMap.forEach((settings) => {
+    isValid &&= settings.isValid;
+  });
+
+  const playButton = document.getElementById("play-button");
+  playButton.disabled = !isValid;
+}
+
+/**
+ * @type {Map<string, NotationSettingsData>}
+ */
+const notationsMap = new Map();
+
+setupListeners();

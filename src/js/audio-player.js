@@ -1,3 +1,5 @@
+"use strict";
+
 /**
  * @typedef { import("./notes-converter").ConvertedNote } ConvertedNote
  *
@@ -119,13 +121,13 @@ class AudioPlayer {
    * @private
    */
   _scheduleNote({
-    frequency,
-    startTime,
-    releaseTime,
-    adsrSettings,
-    wave,
-    destination,
-  }) {
+                  frequency,
+                  startTime,
+                  releaseTime,
+                  adsrSettings,
+                  wave,
+                  destination,
+                }) {
     const oscillator = this._audioContext.createOscillator();
     const gainNode = this._audioContext.createGain();
     const noteDuration = releaseTime - startTime;
