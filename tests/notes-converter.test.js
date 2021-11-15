@@ -44,9 +44,7 @@ describe('NotesConverter', () => {
 
   describe('_parseNote should', () => {
     test('parse C3/16', () => {
-      const converter = new NotesConverter();
-
-      const result = converter._parseNote('C3/16');
+      const result = NotesConverter._parseNote('C3/16');
 
       expect(result.note).toBe('C');
       expect(result.octave).toBe(3);
@@ -55,9 +53,7 @@ describe('NotesConverter', () => {
     });
 
     test('parse D#7/8.', () => {
-      const converter = new NotesConverter();
-
-      const result = converter._parseNote('D#7/8.');
+      const result = NotesConverter._parseNote('D#7/8.');
 
       expect(result.note).toBe('D#');
       expect(result.octave).toBe(7);
@@ -66,9 +62,7 @@ describe('NotesConverter', () => {
     });
 
     test('parse _/2', () => {
-      const converter = new NotesConverter();
-
-      const result = converter._parseNote('_/2');
+      const result = NotesConverter._parseNote('_/2');
 
       expect(result.isPause).toBe(true);
       expect(result.durationInBits).toBe(2);

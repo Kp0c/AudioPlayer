@@ -162,7 +162,7 @@ class NotationSettings extends HTMLElement {
   constructor() {
     super();
 
-    this.attachShadow({mode: 'open'});
+    this.attachShadow({ mode: 'open' });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
     this.deleteButton = this.shadowRoot.getElementById('delete-button');

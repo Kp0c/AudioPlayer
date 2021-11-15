@@ -12,7 +12,7 @@
  * @property {number} release
  */
 
-const {Subject} = require('rxjs');
+const { Subject } = require('rxjs');
 
 class AudioPlayer {
   /**
