@@ -4,6 +4,7 @@
 
 import {first, fromEvent, takeUntil} from 'rxjs';
 
+require('./notation-settings');
 const AudioPlayer = require('./audio-player');
 
 const presetModal = document.getElementById('select-preset-modal');
