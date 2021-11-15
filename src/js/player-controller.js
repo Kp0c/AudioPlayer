@@ -1,67 +1,68 @@
 const NotesConverter = require("./notes-converter");
 const AudioPlayer = require("./audio-player");
 const { takeUntil, ReplaySubject } = require("rxjs");
+const presets = require("./presets");
 
 let template = document.createElement("template");
 template.innerHTML = `
 <style>
 .player-container {
-    width: 80vw;
-    background: var(--surface-color);
-    border-radius: 20px;
-    box-shadow: 0 0 20px 8px var(--background-color-shadow);
-    margin: 30px;
-    padding: 16px 16px;
-    display: flex;
-    flex-direction: column;
+  width: 80vw;
+  background: var(--surface-color);
+  border-radius: 20px;
+  box-shadow: 0 0 20px 8px var(--background-color-shadow);
+  margin: 30px;
+  padding: 16px 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .player-container textarea {
-    width: 100%;
-    box-sizing: border-box;
-    resize: none;
-    border-radius: 10px;
-    padding: 5px;
-    flex: 1;
-    margin: 10px 0;
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  border-radius: 10px;
+  padding: 5px;
+  flex: 1;
+  margin: 10px 0;
 }
 
 .bpm {
-    display: flex;
-    align-items: center;
-    margin: 10px 0;
+  display: flex;
+  align-items: center;
+  margin: 10px 0;
 }
 
 .bpm #bpm-text {
-    width: 5em;
-    border-radius: 5px;
-    border: 1px solid var(--divider-color);
+  width: 5em;
+  border-radius: 5px;
+  border: 1px solid var(--divider-color);
 }
 
 .slider {
-    -webkit-appearance: none;
-    width: 100%;
-    height: 15px;
-    border-radius: 5px;
-    background: var(--divider-color);
-    outline: none;
-    opacity: 0.7;
-    -webkit-transition: .2s;
-    transition: opacity .2s;
+  -webkit-appearance: none;
+  width: 100%;
+  height: 15px;
+  border-radius: 5px;
+  background: var(--divider-color);
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
 }
 
 .slider:hover {
-    opacity: 1;
+  opacity: 1;
 }
 
 .slider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 25px;
-    height: 25px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  cursor: pointer;
 }
 
 .slider:disabled::-webkit-slider-thumb {
@@ -80,6 +81,11 @@ template.innerHTML = `
 #delete-button:hover {
   transform: scale(1.1);
 }
+
+select {
+  border-radius: 5px;
+  border: 1px solid var(--divider-color);  
+}
 </style>
 <div class="player-container">
   <img id="delete-button" src="assets/delete-button.svg" alt="Delete button">
@@ -91,6 +97,7 @@ template.innerHTML = `
     <input class="slider" type="range" id="bpm-slider" min="10" max="300" value="100">
   </div>
   <div>
+  <label for="wave">Wave Type: </label>
     <select name="wave" id="wave">
       <option value="sine">sine</option>
       <option value="sawtooth">sawtooth</option>
@@ -131,9 +138,7 @@ class PlayerController extends HTMLElement {
 
     this.attachShadow({ mode: "open" });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
-  }
 
-  connectedCallback() {
     this.playButton = document.getElementById("play-button");
     this.pauseButton = document.getElementById("pause-button");
     this.resumeButton = document.getElementById("resume-button");
@@ -150,7 +155,29 @@ class PlayerController extends HTMLElement {
     this.decay = this.shadowRoot.getElementById("decay-slider");
     this.sustain = this.shadowRoot.getElementById("sustain-slider");
     this.release = this.shadowRoot.getElementById("release-slider");
+  }
 
+  static get observedAttributes() {
+    return ["preset"];
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    const preset = presets.get(newValue);
+
+    if (preset === undefined) {
+      return;
+    }
+
+    this.bpmText.value = preset.bpm;
+    this.bpmSlider.value = preset.bpm;
+    this.wave.value = preset.wave;
+    this.attack.value = preset.attack;
+    this.decay.value = preset.decay;
+    this.sustain.value = preset.sustain;
+    this.release.value = preset.release;
+  }
+
+  connectedCallback() {
     this.playButton.addEventListener("click", this.handlePlay);
     this.pauseButton.addEventListener("click", this.handlePause);
     this.resumeButton.addEventListener("click", this.handleResume);
