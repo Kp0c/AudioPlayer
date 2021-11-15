@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * @typedef { import("./notes-converter").ConvertedNote } ConvertedNote
+ * @typedef { import("./notation-settings").NotationSettingsData } NotationSettingsData
  *
  * @typedef { import("rxjs").Observable } Observable
  */
@@ -33,6 +33,8 @@ class AudioPlayer {
    */
   _state = new Subject();
 
+  _checkIsFinishedIntervalId = null;
+
   /**
    *
    * @returns { Observable<AudioContextState>}
@@ -43,34 +45,67 @@ class AudioPlayer {
 
   /**
    *
-   * @param {[ConvertedNote]} notes
-   * @param {number} bpm
-   * @param {AdsrSettings} adsrSettings
-   * @param {OscillatorType} wave
+   * @param {[NotationSettingsData]} notationSettings
    */
-  play(notes, bpm, adsrSettings, wave) {
-    this._audioContext?.close();
+  async play(notationSettings) {
+    await this.destroy();
+
     this._audioContext = new AudioContext();
 
     const compressor = this._audioContext.createDynamicsCompressor();
 
-    const bitDuration = 60 / bpm;
-    notes.forEach((note, index) => {
-      const startTime = index * bitDuration;
-      const endTime = startTime + bitDuration * note.durationInBits;
-      this._scheduleNote({
-        frequency: note.frequency,
-        startTime: startTime,
-        releaseTime: endTime,
-        adsrSettings: adsrSettings,
-        wave: wave,
-        destination: compressor,
-      });
+    let finishTime = 0;
+    notationSettings.forEach((settings) => {
+      const finish = this._scheduleNotationSettings(settings, compressor);
+
+      finishTime = Math.max(finish, finishTime);
     });
+
+    this._checkIsFinishedIntervalId = setInterval(() => {
+      if (this._audioContext.currentTime > finishTime) {
+        this.destroy();
+      }
+    }, 500);
 
     compressor.connect(this._audioContext.destination);
 
     this._state.next(this._audioContext.state);
+  }
+
+  /**
+   *
+   * @param {NotationSettingsData} settings
+   * @param {AudioNode} destination
+   * @private
+   *
+   * @returns {number} finish time
+   */
+  _scheduleNotationSettings(settings, destination) {
+    let finishTime = 0;
+
+    const bitDuration = 60 / settings.bpm;
+    settings.notesToPlay.forEach((note, index) => {
+      const startTime = index * bitDuration;
+      const endTime = startTime + bitDuration * note.durationInBits;
+
+      const finish = this._scheduleNote({
+        frequency: note.frequency,
+        startTime: startTime,
+        releaseTime: endTime,
+        adsrSettings: {
+          attack: settings.attack,
+          decay: settings.decay,
+          sustain: settings.sustain,
+          release: settings.release,
+        },
+        wave: settings.waveType,
+        destination,
+      });
+
+      finishTime = Math.max(finish, finishTime);
+    });
+
+    return finishTime;
   }
 
   /**
@@ -95,18 +130,17 @@ class AudioPlayer {
    * Stops music
    */
   async stop() {
-    await this._audioContext?.close();
-    this._state.next(this._audioContext.state);
-
-    this._audioContext = null;
+    await this.destroy();
   }
 
   /**
    * Closes audio context
    */
   async destroy() {
+    clearInterval(this._checkIsFinishedIntervalId);
     await this._audioContext?.close();
 
+    this._state.next("closed");
     this._audioContext = null;
   }
 
@@ -119,15 +153,17 @@ class AudioPlayer {
    * @param {OscillatorType} wave
    * @param {AudioNode} destination
    * @private
+   *
+   * @returns {number} note finish time
    */
   _scheduleNote({
-                  frequency,
-                  startTime,
-                  releaseTime,
-                  adsrSettings,
-                  wave,
-                  destination,
-                }) {
+    frequency,
+    startTime,
+    releaseTime,
+    adsrSettings,
+    wave,
+    destination,
+  }) {
     const oscillator = this._audioContext.createOscillator();
     const gainNode = this._audioContext.createGain();
     const noteDuration = releaseTime - startTime;
@@ -160,6 +196,8 @@ class AudioPlayer {
     oscillator.stop(finishReleaseTime);
 
     oscillator.connect(gainNode).connect(destination);
+
+    return finishReleaseTime;
   }
 }
 

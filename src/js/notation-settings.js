@@ -155,13 +155,6 @@ select {
 class NotationSettings extends HTMLElement {
   /**
    *
-   * @type {AudioPlayer}
-   * @private
-   */
-  _audioPlayer = new AudioPlayer();
-
-  /**
-   *
    * @type {ReplaySubject<void>}
    * @private
    */
@@ -172,11 +165,6 @@ class NotationSettings extends HTMLElement {
 
     this.attachShadow({ mode: "open" });
     this.shadowRoot.appendChild(template.content.cloneNode(true));
-
-    this.playButton = document.getElementById("play-button");
-    this.pauseButton = document.getElementById("pause-button");
-    this.resumeButton = document.getElementById("resume-button");
-    this.stopButton = document.getElementById("stop-button");
 
     this.deleteButton = this.shadowRoot.getElementById("delete-button");
 
@@ -194,31 +182,45 @@ class NotationSettings extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ["preset"];
+    return ["preset", "disabled"];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    const preset = presets.get(newValue);
+    if (name === "preset") {
+      const preset = presets.get(newValue);
 
-    if (preset === undefined) {
-      return;
+      if (preset === undefined) {
+        return;
+      }
+
+      this.bpmText.value = preset.bpm;
+      this.bpmSlider.value = preset.bpm;
+      this.wave.value = preset.wave;
+      this.attack.value = preset.attack;
+      this.decay.value = preset.decay;
+      this.sustain.value = preset.sustain;
+      this.release.value = preset.release;
     }
 
-    this.bpmText.value = preset.bpm;
-    this.bpmSlider.value = preset.bpm;
-    this.wave.value = preset.wave;
-    this.attack.value = preset.attack;
-    this.decay.value = preset.decay;
-    this.sustain.value = preset.sustain;
-    this.release.value = preset.release;
+    if (name === "disabled") {
+      const elementsToDisableOnPlaying = [
+        this.notation,
+        this.bpmText,
+        this.bpmSlider,
+        this.attack,
+        this.decay,
+        this.sustain,
+        this.release,
+        this.wave,
+      ];
+
+      elementsToDisableOnPlaying.forEach((element) => {
+        element.disabled = newValue !== null;
+      });
+    }
   }
 
   connectedCallback() {
-    this.playButton.addEventListener("click", this.handlePlay);
-    this.pauseButton.addEventListener("click", this.handlePause);
-    this.resumeButton.addEventListener("click", this.handleResume);
-    this.stopButton.addEventListener("click", this.handleStop);
-
     this.deleteButton.addEventListener("click", this.delete);
 
     this.bpmSlider.addEventListener("input", () => {
@@ -260,33 +262,6 @@ class NotationSettings extends HTMLElement {
       .pipe(takeUntil(this._disconnect$))
       .subscribe(() => {
         this.validateAndSendEvent();
-      });
-
-    this._audioPlayer.state
-      .pipe(takeUntil(this._disconnect$))
-      .subscribe((state) => {
-        const isRunning = state === "running";
-        const isClosed = state === "closed";
-        const isSuspended = state === "suspended";
-
-        this.pauseButton.disabled = isClosed || isSuspended;
-        this.resumeButton.disabled = isClosed || isRunning;
-        this.stopButton.disabled = isClosed;
-
-        const elementsToDisableOnPlaying = [
-          this.notation,
-          this.bpmText,
-          this.bpmSlider,
-          this.attack,
-          this.decay,
-          this.sustain,
-          this.release,
-          this.wave,
-        ];
-
-        elementsToDisableOnPlaying.forEach((element) => {
-          element.disabled = !isClosed;
-        });
       });
 
     this.validateAndSendEvent();
@@ -336,45 +311,10 @@ class NotationSettings extends HTMLElement {
   }
 
   async disconnectedCallback() {
-    this.playButton.removeEventListener("click", this.handlePlay);
-    this.pauseButton.removeEventListener("click", this.handlePause);
-    this.resumeButton.removeEventListener("click", this.handleResume);
-    this.stopButton.removeEventListener("click", this.handleStop);
     this.deleteButton.removeEventListener("click", this.delete);
 
     this._disconnect$.next();
-    await this._audioPlayer.destroy();
   }
-
-  handlePlay = () => {
-    const converter = new NotesConverter();
-    const notationText = this.notation.value.trim();
-    const notes = converter.convertNotation(notationText);
-
-    this._audioPlayer.play(
-      notes,
-      this.bpmSlider.value,
-      {
-        attack: Number(this.attack.value),
-        decay: Number(this.decay.value),
-        sustain: Number(this.sustain.value),
-        release: Number(this.release.value),
-      },
-      this.wave.value
-    );
-  };
-
-  handlePause = async () => {
-    await this._audioPlayer.pause();
-  };
-
-  handleResume = async () => {
-    await this._audioPlayer.resume();
-  };
-
-  handleStop = async () => {
-    await this._audioPlayer.stop();
-  };
 
   delete = () => {
     this.parentElement.removeChild(this);

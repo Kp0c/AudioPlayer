@@ -4,12 +4,25 @@
  * @typedef {import("./notation-settings").NotationSettingsData} NotationSettingsData
  */
 
-require("./notation-settings");
-const { fromEvent, takeUntil, first } = require("rxjs");
+import { first, fromEvent, takeUntil } from "rxjs";
+
+const AudioPlayer = require("./audio-player");
 
 const presetModal = document.getElementById("select-preset-modal");
 
-function setupListeners() {
+function setupGlobalListeners() {
+  const playButton = document.getElementById("play-button");
+  playButton.addEventListener("click", handlePlay);
+
+  const pauseButton = document.getElementById("pause-button");
+  pauseButton.addEventListener("click", handlePause);
+
+  const resumeButton = document.getElementById("resume-button");
+  resumeButton.addEventListener("click", handleResume);
+
+  const stopButton = document.getElementById("stop-button");
+  stopButton.addEventListener("click", handleStop);
+
   const cancelButton = document.getElementById("cancel-button");
   cancelButton.addEventListener("click", handleCancelClick);
 
@@ -26,6 +39,25 @@ function setupListeners() {
   addNotationButton.addEventListener("click", handleAddNotationClick);
 
   window.addEventListener("click", handleClickOutside);
+
+  audioPlayer.state.subscribe((state) => {
+    console.log(state);
+    const isRunning = state === "running";
+    const isClosed = state === "closed";
+    const isSuspended = state === "suspended";
+
+    pauseButton.disabled = isClosed || isSuspended;
+    resumeButton.disabled = isClosed || isRunning;
+    stopButton.disabled = isClosed;
+
+    document.querySelectorAll("ap-notation-settings").forEach((element) => {
+      if (isClosed) {
+        element.removeAttribute("disabled");
+      } else {
+        element.setAttribute("disabled", "");
+      }
+    });
+  });
 }
 
 function handleClickOutside(event) {
@@ -73,9 +105,11 @@ function addPlayerWithPreset(preset) {
 
   fromEvent(newNotation, "DOMNodeRemoved")
     .pipe(first())
-    .subscribe(() => {
+    .subscribe(async () => {
       notationsMap.delete(newNotation.id);
       updatePlayerButtons();
+
+      await handleStop();
     });
 
   fromEvent(newNotation, "notationChange")
@@ -103,9 +137,33 @@ function updatePlayerButtons() {
   playButton.disabled = !isValid;
 }
 
+async function handlePlay() {
+  const notationsSettingsArray = [];
+  notationsMap.forEach((settings) => notationsSettingsArray.push(settings));
+
+  await audioPlayer.play(notationsSettingsArray);
+}
+
+async function handlePause() {
+  await audioPlayer.pause();
+}
+
+async function handleResume() {
+  await audioPlayer.resume();
+}
+
+async function handleStop() {
+  await audioPlayer.stop();
+}
+
+/**
+ * @type {AudioPlayer}
+ */
+const audioPlayer = new AudioPlayer();
+
 /**
  * @type {Map<string, NotationSettingsData>}
  */
 const notationsMap = new Map();
 
-setupListeners();
+setupGlobalListeners();
