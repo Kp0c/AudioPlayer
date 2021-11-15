@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @typedef {Object} ConvertedNote
  * @property {number} frequency
@@ -23,7 +21,7 @@ class NotesConverter {
    * @private
    * @readonly
    */
-  _notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+  _notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
   /**
    * index of base note
@@ -32,7 +30,7 @@ class NotesConverter {
    * @private
    * @readonly
    */
-  _baseNoteIndex = this._notes.indexOf("A");
+  _baseNoteIndex = this._notes.indexOf('A');
 
   /**
    * octave of base note
@@ -53,47 +51,6 @@ class NotesConverter {
   _baseNoteFrequency = 440;
 
   /**
-   * converts notation to frequency + durationInBits array
-   *
-   * @param {string} notation
-   * {@link https://en.wikipedia.org/wiki/Scientific_pitch_notation}
-   *
-   * @returns {[ConvertedNote]} converted notes
-   */
-  convertNotation(notation) {
-    return notation.split(" ").map((unit) => this._convertNote(unit));
-  }
-
-  /**
-   * converts notationUnit from SPN notation to frequency + durationInBits
-   *
-   * @param {string} notationUnit
-   * {@link https://en.wikipedia.org/wiki/Scientific_pitch_notation}
-   *
-   * @returns {ConvertedNote} converted note
-   * @private
-   */
-  _convertNote(notationUnit) {
-    let note = this._parseNote(notationUnit);
-
-    let frequency = 0;
-
-    if (!note.isPause) {
-      const distance = this._calculateDistanceFromBaseNote(
-        note.note,
-        note.octave
-      );
-      frequency =
-        this._baseNoteFrequency * 2 ** (distance / this._notes.length);
-    }
-
-    return {
-      frequency: Number(frequency.toFixed(2)),
-      durationInBits: note.durationInBits,
-    };
-  }
-
-  /**
    * Parse notationUnit to note object
    *
    * @param {string} notationUnit
@@ -101,21 +58,21 @@ class NotesConverter {
    *
    * @returns {Note} note
    */
-  _parseNote(notationUnit) {
-    const splittedUnit = notationUnit.split("/");
+  static _parseNote(notationUnit) {
+    const splitUnit = notationUnit.split('/');
 
-    if (splittedUnit.length !== 2) {
+    if (splitUnit.length !== 2) {
       throw new Error(`Invalid unit: ${notationUnit}`);
     }
 
-    const [noteWithOctave, durationInBits] = splittedUnit;
+    const [noteWithOctave, durationInBits] = splitUnit;
 
     let note = null;
     let octave = null;
-    let isPause = noteWithOctave === "_";
+    const isPause = noteWithOctave === '_';
 
     if (!isPause) {
-      if (noteWithOctave.includes("#")) {
+      if (noteWithOctave.includes('#')) {
         note = noteWithOctave.slice(0, 2);
         octave = Number(noteWithOctave.slice(2));
       } else {
@@ -128,7 +85,7 @@ class NotesConverter {
       }
     }
 
-    const isExtended = durationInBits.includes(".");
+    const isExtended = durationInBits.includes('.');
 
     const durationModifier = isExtended ? 1.5 : 1;
 
@@ -136,7 +93,47 @@ class NotesConverter {
       note,
       octave,
       durationInBits: (4 / Number(durationInBits)) * durationModifier,
-      isPause: isPause,
+      isPause,
+    };
+  }
+
+  /**
+   * converts notation to frequency + durationInBits array
+   *
+   * @param {string} notation
+   * {@link https://en.wikipedia.org/wiki/Scientific_pitch_notation}
+   *
+   * @returns {[ConvertedNote]} converted notes
+   */
+  convertNotation(notation) {
+    return notation.split(' ').map((unit) => this._convertNote(unit));
+  }
+
+  /**
+   * converts notationUnit from SPN notation to frequency + durationInBits
+   *
+   * @param {string} notationUnit
+   * {@link https://en.wikipedia.org/wiki/Scientific_pitch_notation}
+   *
+   * @returns {ConvertedNote} converted note
+   * @private
+   */
+  _convertNote(notationUnit) {
+    const note = NotesConverter._parseNote(notationUnit);
+
+    let frequency = 0;
+
+    if (!note.isPause) {
+      const distance = this._calculateDistanceFromBaseNote(
+        note.note,
+        note.octave,
+      );
+      frequency = this._baseNoteFrequency * 2 ** (distance / this._notes.length);
+    }
+
+    return {
+      frequency: Number(frequency.toFixed(2)),
+      durationInBits: note.durationInBits,
     };
   }
 

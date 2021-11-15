@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @typedef { import("./notation-settings").NotationSettingsData } NotationSettingsData
  *
@@ -14,7 +12,7 @@
  * @property {number} release
  */
 
-const { Subject } = require("rxjs");
+const {Subject} = require('rxjs');
 
 class AudioPlayer {
   /**
@@ -90,7 +88,7 @@ class AudioPlayer {
 
       const finish = this._scheduleNote({
         frequency: note.frequency,
-        startTime: startTime,
+        startTime,
         releaseTime: endTime,
         adsrSettings: {
           attack: settings.attack,
@@ -140,7 +138,7 @@ class AudioPlayer {
     clearInterval(this._checkIsFinishedIntervalId);
     await this._audioContext?.close();
 
-    this._state.next("closed");
+    this._state.next('closed');
     this._audioContext = null;
   }
 
@@ -179,18 +177,17 @@ class AudioPlayer {
     gainNode.gain.linearRampToValueAtTime(1, finishAttackTime);
 
     // set decay
-    const finishDecayTime =
-      finishAttackTime + noteDuration * adsrSettings.decay;
+    const finishDecayTime = finishAttackTime + noteDuration * adsrSettings.decay;
     gainNode.gain.linearRampToValueAtTime(
       adsrSettings.sustain,
-      finishDecayTime
+      finishDecayTime,
     );
 
     // sustain flat
     gainNode.gain.setValueAtTime(adsrSettings.sustain, releaseTime);
 
     // set release
-    let finishReleaseTime = releaseTime + noteDuration * adsrSettings.release;
+    const finishReleaseTime = releaseTime + noteDuration * adsrSettings.release;
     gainNode.gain.linearRampToValueAtTime(0.00001, finishReleaseTime);
 
     oscillator.stop(finishReleaseTime);

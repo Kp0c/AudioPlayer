@@ -1,5 +1,3 @@
-"use strict";
-
 /**
  * @typedef {Object} Preset
  * @property {OscillatorType} wave
@@ -15,10 +13,10 @@
  */
 const presets = new Map([
   [
-    "piano",
+    'piano',
     {
       bpm: 100,
-      wave: "sine",
+      wave: 'sine',
       attack: 0.01,
       decay: 0.44,
       sustain: 0.01,
@@ -26,10 +24,10 @@ const presets = new Map([
     },
   ],
   [
-    "synthesizer",
+    'synthesizer',
     {
       bpm: 200,
-      wave: "sawtooth",
+      wave: 'sawtooth',
       attack: 0.01,
       decay: 0.01,
       sustain: 1,
@@ -37,10 +35,10 @@ const presets = new Map([
     },
   ],
   [
-    "drums",
+    'drums',
     {
       bpm: 144,
-      wave: "triangle",
+      wave: 'triangle',
       attack: 0.01,
       decay: 0.15,
       sustain: 0.01,

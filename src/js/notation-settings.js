@@ -1,9 +1,8 @@
-"use strict";
-
-const NotesConverter = require("./notes-converter");
-const AudioPlayer = require("./audio-player");
-const { takeUntil, ReplaySubject, fromEvent, merge } = require("rxjs");
-const presets = require("./presets");
+const {
+  takeUntil, ReplaySubject, fromEvent, merge,
+} = require('rxjs');
+const NotesConverter = require('./notes-converter');
+const presets = require('./presets');
 
 /**
  * @typedef {Object} NotationSettingsData
@@ -17,7 +16,7 @@ const presets = require("./presets");
  * @property {number} release
  */
 
-let template = document.createElement("template");
+const template = document.createElement('template');
 template.innerHTML = `
 <style>
 .player-container {
@@ -163,30 +162,30 @@ class NotationSettings extends HTMLElement {
   constructor() {
     super();
 
-    this.attachShadow({ mode: "open" });
+    this.attachShadow({mode: 'open'});
     this.shadowRoot.appendChild(template.content.cloneNode(true));
 
-    this.deleteButton = this.shadowRoot.getElementById("delete-button");
+    this.deleteButton = this.shadowRoot.getElementById('delete-button');
 
-    this.notation = this.shadowRoot.getElementById("notation");
-    this.bpmSlider = this.shadowRoot.getElementById("bpm-slider");
-    this.bpmText = this.shadowRoot.getElementById("bpm-text");
+    this.notation = this.shadowRoot.getElementById('notation');
+    this.bpmSlider = this.shadowRoot.getElementById('bpm-slider');
+    this.bpmText = this.shadowRoot.getElementById('bpm-text');
 
-    this.wave = this.shadowRoot.getElementById("wave");
-    this.attack = this.shadowRoot.getElementById("attack-slider");
-    this.decay = this.shadowRoot.getElementById("decay-slider");
-    this.sustain = this.shadowRoot.getElementById("sustain-slider");
-    this.release = this.shadowRoot.getElementById("release-slider");
+    this.wave = this.shadowRoot.getElementById('wave');
+    this.attack = this.shadowRoot.getElementById('attack-slider');
+    this.decay = this.shadowRoot.getElementById('decay-slider');
+    this.sustain = this.shadowRoot.getElementById('sustain-slider');
+    this.release = this.shadowRoot.getElementById('release-slider');
 
-    this.error = this.shadowRoot.getElementById("error");
+    this.error = this.shadowRoot.getElementById('error');
   }
 
   static get observedAttributes() {
-    return ["preset", "disabled"];
+    return ['preset', 'disabled'];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
-    if (name === "preset") {
+    if (name === 'preset') {
       const preset = presets.get(newValue);
 
       if (preset === undefined) {
@@ -202,7 +201,7 @@ class NotationSettings extends HTMLElement {
       this.release.value = preset.release;
     }
 
-    if (name === "disabled") {
+    if (name === 'disabled') {
       const elementsToDisableOnPlaying = [
         this.notation,
         this.bpmText,
@@ -215,49 +214,50 @@ class NotationSettings extends HTMLElement {
       ];
 
       elementsToDisableOnPlaying.forEach((element) => {
+        // eslint-disable-next-line no-param-reassign
         element.disabled = newValue !== null;
       });
     }
   }
 
   connectedCallback() {
-    this.deleteButton.addEventListener("click", this.delete);
+    this.deleteButton.addEventListener('click', this.delete);
 
-    this.bpmSlider.addEventListener("input", () => {
+    this.bpmSlider.addEventListener('input', () => {
       this.bpmText.value = this.bpmSlider.value;
     });
 
-    this.bpmText.addEventListener("input", () => {
+    this.bpmText.addEventListener('input', () => {
       this.bpmSlider.value = this.bpmText.value;
     });
 
-    fromEvent(this.bpmSlider, "input")
+    fromEvent(this.bpmSlider, 'input')
       .pipe(takeUntil(this._disconnect$))
       .subscribe((event) => {
         this.bpmText.value = event.target.value;
 
         this.bpmText.dispatchEvent(
-          new Event("change", {
+          new Event('change', {
             bubbles: true,
             cancelable: true,
-          })
+          }),
         );
       });
 
-    fromEvent(this.bpmText, "change")
+    fromEvent(this.bpmText, 'change')
       .pipe(takeUntil(this._disconnect$))
       .subscribe((event) => {
         this.bpmSlider.value = event.target.value;
       });
 
     merge(
-      fromEvent(this.bpmText, "change"),
-      fromEvent(this.wave, "change"),
-      fromEvent(this.attack, "change"),
-      fromEvent(this.decay, "change"),
-      fromEvent(this.sustain, "change"),
-      fromEvent(this.release, "change"),
-      fromEvent(this.notation, "change")
+      fromEvent(this.bpmText, 'change'),
+      fromEvent(this.wave, 'change'),
+      fromEvent(this.attack, 'change'),
+      fromEvent(this.decay, 'change'),
+      fromEvent(this.sustain, 'change'),
+      fromEvent(this.release, 'change'),
+      fromEvent(this.notation, 'change'),
     )
       .pipe(takeUntil(this._disconnect$))
       .subscribe(() => {
@@ -270,24 +270,24 @@ class NotationSettings extends HTMLElement {
   validateAndSendEvent() {
     let notesToPlay = [];
     let isValid = true;
-    this.error.innerText = "";
+    this.error.innerText = '';
 
     try {
-      this.notation.classList.remove("invalid");
+      this.notation.classList.remove('invalid');
 
       const notation = this.notation.value;
       notesToPlay = new NotesConverter().convertNotation(notation);
     } catch (err) {
-      this.notation.classList.add("invalid");
+      this.notation.classList.add('invalid');
 
       this.error.innerText = err.message;
       isValid = false;
     }
 
-    this.bpmText.classList.remove("invalid");
+    this.bpmText.classList.remove('invalid');
     if (this.bpmText.value < 10 || this.bpmText.value > 300) {
-      this.bpmText.classList.add("invalid");
-      this.error.innerText = "BPM must be between 10 and 300";
+      this.bpmText.classList.add('invalid');
+      this.error.innerText = 'BPM must be between 10 and 300';
       isValid = false;
     }
 
@@ -304,14 +304,14 @@ class NotationSettings extends HTMLElement {
     };
 
     this.dispatchEvent(
-      new CustomEvent("notationChange", {
+      new CustomEvent('notationChange', {
         detail: eventData,
-      })
+      }),
     );
   }
 
   async disconnectedCallback() {
-    this.deleteButton.removeEventListener("click", this.delete);
+    this.deleteButton.removeEventListener('click', this.delete);
 
     this._disconnect$.next();
   }
@@ -321,6 +321,6 @@ class NotationSettings extends HTMLElement {
   };
 }
 
-window.customElements.define("ap-notation-settings", NotationSettings);
+window.customElements.define('ap-notation-settings', NotationSettings);
 
 module.exports = NotationSettings;

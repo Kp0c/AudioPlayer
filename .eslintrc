@@ -1,3 +1,14 @@
 {
-  "extends": "defaults"
+  "extends": "airbnb",
+  "env": {
+    "browser": true,
+    "es6": true
+  },
+  "parser": "@babel/eslint-parser",
+  "parserOptions": {
+    "requireConfigFile": false
+  },
+  "rules": {
+    "no-underscore-dangle": "off"
+  }
 }
