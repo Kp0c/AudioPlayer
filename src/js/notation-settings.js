@@ -122,7 +122,7 @@ select {
     <div class="spacer"></div>
     <img id="delete-button" src="assets/delete-button.svg" alt="Delete button">
   </div>
-  <textarea rows="10" name="notation" id="notation">E4/4 E4/4 E4/4 D#4/8. A#4/16 E4/4 D#4/8. A#4/16 E4/2 D5/4 D5/4 D5/4 D#5/8. A#4/16 F#4/4 D#4/8. A#4/16 E4/2</textarea>
+  <textarea rows="10" name="notation" id="notation"></textarea>
   
   <div class="bpm">
     BPM:
